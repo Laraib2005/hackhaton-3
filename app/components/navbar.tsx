@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { CiSearch } from "react-icons/ci";
 import { IoCartOutline, IoMenu, IoClose } from "react-icons/io5";
-import { IoIosContact } from "react-icons/io";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";

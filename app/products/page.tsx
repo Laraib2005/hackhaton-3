@@ -1,116 +1,202 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { client } from "@/sanity/lib/client";
-import Image from "next/image";
-import Link from "next/link";
-import WishlistButton from "../components/WishlistButton";
-import { Loader } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '@/app/redux/cartSlice';
+import { client } from '@/sanity/lib/client';
+import { useWishlist } from '@/context/WishlistContext';
+import Link from 'next/link';
 
-interface Product {
-  _id: string;
+type Product = {
+  _id: number;
   name: string;
-  imageUrl: string;
-  price: number;
   slug: string;
+  imageUrl: string;
+  categoryName: string;
+  description: string;
+  price: number;
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+  };
+};
+
+async function getData(slug: string) {
+  const query = `*[_type == "product" && slug.current == "${slug}"][0]{
+    _id,
+    name,
+    "slug": slug.current,
+    "imageUrl": image.asset->url,
+    "categoryName": category->name,
+    description,
+    price,
+    "dimensions": dimensions {
+      width,
+      height,
+      depth
+    },
+    "categorySlug": category->slug.current
+  }`;
+
+  const product = await client.fetch(query);
+  if (!product) return null;
+
+  const relatedQuery = `*[_type == "product" && category->slug.current == "${product.categorySlug}" && slug.current != "${slug}"]{
+    _id,
+    name,
+    "slug": slug.current,
+    "imageUrl": image.asset->url,
+    price
+  }`;
+
+  const relatedProducts = await client.fetch(relatedQuery);
+  return { product, relatedProducts };
 }
 
-const ProductsPage = () => {
-  const [data, setData] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4; // Display 4 products per page
+// ✅ Enhanced Toast Notification Component
+const ToastNotification = ({
+  message,
+  onClose,
+}: {
+  message: string | null;
+  onClose: () => void;
+}) => {
+  if (!message) return null;
+
+  return (
+    <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[#2A254B] text-white px-6 py-4 rounded-lg shadow-lg text-lg flex items-center gap-3 opacity-100 transition-opacity duration-300 ease-in-out animate-toast">
+      <span className="text-2xl">🔔</span>
+      <p className="font-medium">{message}</p>
+      <button className="ml-3 text-white font-bold text-lg" onClick={onClose}>
+        ✖
+      </button>
+    </div>
+  );
+};
+
+const ProductListing = ({ params }: { params: { slug: string } }) => {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+  const dispatch = useDispatch();
+  const { addToWishlist } = useWishlist();
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      const query = `*[_type == "product" && image.asset != null]{
-        _id,
-        name,
-        "slug": slug.current,
-        "imageUrl": image.asset->url,
-        price
-      }`;
-      const result = await client.fetch(query);
-      setData(result || []);
-      setLoading(false);
+      const data = await getData(params.slug);
+      if (data) {
+        setProduct(data.product);
+        setRelatedProducts(data.relatedProducts);
+      }
     };
-
     fetchData();
-  }, []);
+  }, [params.slug]);
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProducts = data.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(data.length / itemsPerPage);
+  if (!product) {
+    return <div className="text-center text-lg mt-10">Product not found</div>;
+  }
+
+  // ✅ Add to Cart Function
+  const handleAddToCart = () => {
+    dispatch(addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.imageUrl,
+      description: product.description,
+    }));
+    showPopup(`🛒 ${product.name} added to cart!`);
+  };
+
+  // ✅ Add to Wishlist Function
+  const handleAddToWishlist = () => {
+    addToWishlist({ ...product, _id: product._id.toString() });
+    showPopup(`❤️ ${product.name} added to wishlist!`);
+  };
+
+  // ✅ Show Popup Message
+  const showPopup = (message: string) => {
+    setPopupMessage(message);
+    setTimeout(() => setPopupMessage(null), 3000);
+  };
 
   return (
-    <section className="px-2 sm:px-4 md:px-8 py-6 sm:py-8 text-[#2A254B] mt-4 sm:mt-12">
-      <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-center">Products</h1>
-
-      {/* Product Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 sm:gap-4 mt-4 sm:mt-6">
-        {loading ? (
-          <div className="col-span-2 sm:col-span-4 flex justify-center items-center">
-            <Loader className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-[#2A254B]" />
-          </div>
-        ) : currentProducts.length > 0 ? (
-          currentProducts.map((product) => (
-            <div className="w-full h-auto" key={product._id}>
-              <Link href={`/products/${product.slug}`}>
-                <Image
-                  src={product.imageUrl}
-                  height={700}
-                  width={700}
-                  alt={product.name}
-                  className="w-full h-[120px] sm:h-[150px] md:h-[200px] lg:h-[250px] object-cover rounded-md"
-                />
-              </Link>
-              <div className="mt-2 text-[#2A254B]">
-                <p className="text-xs sm:text-sm py-1 truncate">{product.name}</p>
-                <p className="text-sm sm:text-base font-semibold">${product.price}</p>
-                <WishlistButton product={product} />
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-gray-500 col-span-2 sm:col-span-4">No products found</p>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      <div className="flex justify-center mt-6 sm:mt-8 space-x-1 sm:space-x-2">
-        <button
-          className={`px-2 py-1 sm:px-3 sm:py-2 border rounded-md text-xs sm:text-sm ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-200"}`}
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-
-        {/* Page Numbers */}
-        <div className="flex space-x-1 sm:space-x-2">
-          {Array.from({ length: totalPages }, (_, index) => (
-            <button
-              key={index}
-              className={`px-2 py-1 sm:px-3 sm:py-2 border rounded-md text-xs sm:text-sm ${currentPage === index + 1 ? "bg-[#2A254B] text-white" : "hover:bg-gray-200"}`}
-              onClick={() => setCurrentPage(index + 1)}
-            >
-              {index + 1}
-            </button>
-          ))}
+    <section className="px-4 md:px-8 lg:px-12 py-8 md:py-12">
+      <div className="flex flex-col md:flex-row gap-6 items-center">
+        <div className="w-full md:w-1/2">
+          <Image
+            src={product.imageUrl}
+            width={700}
+            height={700}
+            alt={product.name}
+            className="w-full h-[400px] object-cover rounded-md"
+          />
         </div>
+        <div className="w-full md:w-1/2 px-4 md:px-10 py-6">
+          <h1 className="text-2xl font-semibold">{product.name}</h1>
+          <p className="text-lg md:text-xl py-2">${product.price}</p>
+          <p className="text-[#505977] text-sm md:text-base">{product.description}</p>
 
-        <button
-          className={`px-2 py-1 sm:px-3 sm:py-2 border rounded-md text-xs sm:text-sm ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-200"}`}
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
+          {/* ✅ Dimensions Section */}
+          <div className="mt-4 p-4 border border-gray-300 rounded-md">
+            <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
+            <div className="grid grid-cols-2 gap-y-2 text-gray-700">
+              <span className="font-medium text-xl">Width:</span>
+              <span className="text-right text-lg">{product.dimensions.width} cm</span>
+
+              <span className="font-medium text-xl">Height:</span>
+              <span className="text-right text-lg">{product.dimensions.height} cm</span>
+
+              <span className="font-medium text-xl">Depth:</span>
+              <span className="text-right text-lg">{product.dimensions.depth} cm</span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-4">
+            <button
+              className="w-[160px] h-[50px] bg-[#2A254B] text-white rounded-md hover:bg-[#3b3570] transition"
+              onClick={handleAddToCart}
+            >
+              🛒 Add to cart
+            </button>
+            <button
+              className="w-[160px] h-[50px] bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+              onClick={handleAddToWishlist}
+            >
+              ❤️ Wishlist
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* ✅ Popup Notification */}
+      <ToastNotification message={popupMessage} onClose={() => setPopupMessage(null)} />
+
+      {relatedProducts.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold mb-4">Related Products</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {relatedProducts.map((item) => (
+              <div key={item._id} className="border p-4 rounded-md shadow-md h-[350px] flex flex-col items-center justify-between">
+                <Image
+                  src={item.imageUrl}
+                  width={200}
+                  height={200}
+                  alt={item.name}
+                  className="w-full h-[200px] object-cover rounded-md"
+                />
+                <h3 className="mt-2 text-lg font-medium">{item.name}</h3>
+                <p className="text-sm text-gray-600">${item.price}</p>
+                <Link href={`/product/${item.slug}`} className="text-blue-600 mt-2">View Product</Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </section>
   );
 };
 
-export default ProductsPage;
+export default ProductListing;

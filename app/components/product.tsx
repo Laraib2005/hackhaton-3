@@ -20,7 +20,7 @@ const Product = () => {
             {/* Product 1 */}
             <div className='w-full md:w-[650px] h-auto'>
               <Image
-                src={'/images/large.png'}
+                src={'/images/Large.png'}
                 height={800}
                 width={800}
                 alt='sofa'

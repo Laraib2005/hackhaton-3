@@ -1,7 +1,6 @@
-import type { StructureResolver } from 'sanity/structure';
+type StructureResolver = (S: any) => any;
 
-// Temporary workaround
-export const structure: StructureResolver = (S: any) =>
+export const structure: StructureResolver = (S) =>
   S.list()
     .title('Content')
     .items(S.documentTypeListItems());

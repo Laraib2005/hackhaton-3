@@ -24,18 +24,18 @@ const Contact = () => {
             ADDRESS
           </h2>
           <p className="mt-1">
-            Naveed Arcade Saddar Karachi
+             Karachi
           </p>
         </div>
         <div className="lg:w-1/2 px-6 mt-4 lg:mt-0">
           <h2 className="title-font font-semibold text-gray-900 tracking-widest text-xs">
             EMAIL
           </h2>
-          <a className="text-indigo-500 leading-relaxed">ms5901562@gmail.com</a>
+          <a className="text-indigo-500 leading-relaxed">abc@gmail.com</a>
           <h2 className="title-font font-semibold text-gray-900 tracking-widest text-xs mt-4">
             PHONE
           </h2>
-          <p className="leading-relaxed">03420032995</p>
+          <p className="leading-relaxed">031156785</p>
         </div>
       </div>
     </div>

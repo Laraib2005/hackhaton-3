@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDispatch } from 'react-redux';
@@ -54,6 +55,17 @@ async function getData(slug: string) {
   return { product, relatedProducts };
 }
 
+const ToastNotification = ({ message, onClose }: { message: string | null; onClose: () => void; }) => {
+  if (!message) return null;
+  return (
+    <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[#2A254B] text-white px-6 py-4 rounded-lg shadow-lg text-lg flex items-center gap-3 opacity-100 transition-opacity duration-300 ease-in-out animate-toast">
+      <span className="text-2xl">🔔</span>
+      <p className="font-medium">{message}</p>
+      <button className="ml-3 text-white font-bold text-lg" onClick={onClose}>✖</button>
+    </div>
+  );
+};
+
 const ProductListing = ({ params }: { params: { slug: string } }) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -72,12 +84,8 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
     fetchData();
   }, [params.slug]);
 
-  if (!product) {
-    return <div className="text-center text-lg mt-10">Product not found</div>;
-  }
-
-  // ✅ Add to Cart Function
   const handleAddToCart = () => {
+    if (!product) return;
     dispatch(addToCart({
       id: product._id,
       name: product.name,
@@ -86,16 +94,15 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
       image: product.imageUrl,
       description: product.description,
     }));
-    showPopup("Item added to cart!");
+    showPopup(`🛒 ${product.name} added to cart!`);
   };
 
-  // ✅ Add to Wishlist Function
   const handleAddToWishlist = () => {
+    if (!product) return;
     addToWishlist({ ...product, _id: product._id.toString() });
-    showPopup("Item added to wishlist!");
+    showPopup(`❤️ ${product.name} added to wishlist!`);
   };
 
-  // ✅ Show Popup Message
   const showPopup = (message: string) => {
     setPopupMessage(message);
     setTimeout(() => setPopupMessage(null), 3000);
@@ -103,77 +110,41 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
 
   return (
     <section className="px-4 md:px-8 lg:px-12 py-8 md:py-12">
-      <div className="flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-full md:w-1/2">
-          <Image
-            src={product.imageUrl}
-            width={700}
-            height={700}
-            alt={product.name}
-            className="w-full h-[400px] object-cover rounded-md"
-          />
-        </div>
-        <div className="w-full md:w-1/2 px-4 md:px-10 py-6">
-          <h1 className="text-2xl font-semibold">{product.name}</h1>
-          <p className="text-lg md:text-xl py-2">${product.price}</p>
-          <p className="text-[#505977] text-sm md:text-base">{product.description}</p>
-
-          {/* ✅ Dimensions Section */}
-          {/* ✅ Dimensions Section */}
-{/* ✅ Dimensions Section */}
-<div className="mt-4 p-4 border border-gray-300 rounded-md">
-  <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
-  <div className="grid grid-cols-2 gap-y-2 text-gray-700">
-    <span className="font-medium text-2xl">Width:</span>
-    <span className="text-right text-xl">{product.dimensions.width} </span>
-
-    <span className="font-medium text-2xl">Height:</span>
-    <span className="text-right text-xl">{product.dimensions.height} </span>
-
-    <span className="font-medium text-2xl">Depth:</span>
-    <span className="text-right text-xl">{product.dimensions.depth} </span>
-  </div>
-</div>
-
-
-
-          <div className="mt-6 flex gap-4">
-            <button
-              className="w-[150px] h-[50px] bg-[#2A254B] text-white rounded-md"
-              onClick={handleAddToCart}
-            >
-              Add to cart
-            </button>
-            <button
-              className="w-[150px] h-[50px] bg-red-500 text-white rounded-md"
-              onClick={handleAddToWishlist}
-            >
-              Wishlist ❤️
-            </button>
+      {product && (
+        <div className="flex flex-col md:flex-row gap-6 items-center">
+          <div className="w-full md:w-1/2">
+            <Image src={product.imageUrl} width={700} height={700} alt={product.name} className="w-full h-[400px] object-cover rounded-md" />
+          </div>
+          <div className="w-full md:w-1/2 px-4 md:px-10 py-6">
+            <h1 className="text-2xl font-semibold">{product.name}</h1>
+            <p className="text-lg md:text-xl py-2">${product.price}</p>
+            <p className="text-[#505977] text-sm md:text-base">{product.description}</p>
+            <div className="mt-4 p-4 border border-gray-300 rounded-md">
+              <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
+              <div className="grid grid-cols-2 gap-y-2 text-gray-700">
+                <span className="font-medium text-xl">Width:</span>
+                <span className="text-right text-lg">{product.dimensions.width} cm</span>
+                <span className="font-medium text-xl">Height:</span>
+                <span className="text-right text-lg">{product.dimensions.height} cm</span>
+                <span className="font-medium text-xl">Depth:</span>
+                <span className="text-right text-lg">{product.dimensions.depth} cm</span>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-4">
+              <button className="w-[160px] h-[50px] bg-[#2A254B] text-white rounded-md hover:bg-[#3b3570] transition" onClick={handleAddToCart}>🛒 Add to cart</button>
+              <button className="w-[160px] h-[50px] bg-red-500 text-white rounded-md hover:bg-red-600 transition" onClick={handleAddToWishlist}>❤️ Wishlist</button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* ✅ Popup Message */}
-      {popupMessage && (
-        <div className="fixed bottom-6 right-6 bg-[#2A254B] text-white px-6 py-3 rounded-lg shadow-lg transition-all transform duration-300 ease-in-out">
-          <p className="font-medium">{popupMessage}</p>
-        </div>
       )}
-
+      <ToastNotification message={popupMessage} onClose={() => setPopupMessage(null)} />
       {relatedProducts.length > 0 && (
         <section className="mt-12">
           <h2 className="text-xl font-semibold mb-4">Related Products</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {relatedProducts.map((item) => (
               <div key={item._id} className="border p-4 rounded-md shadow-md h-[350px] flex flex-col items-center justify-between">
-                <Image
-                  src={item.imageUrl}
-                  width={200}
-                  height={200}
-                  alt={item.name}
-                  className="w-full h-[200px] object-cover rounded-md"
-                />
+                <Image src={item.imageUrl} width={200} height={200} alt={item.name} className="w-full h-[200px] object-cover rounded-md" />
                 <h3 className="mt-2 text-lg font-medium">{item.name}</h3>
                 <p className="text-sm text-gray-600">${item.price}</p>
                 <Link href={`/product/${item.slug}`} className="text-blue-600 mt-2">View Product</Link>

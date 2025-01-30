@@ -24,6 +24,7 @@ type Product = {
 
 async function getData(slug: string) {
   try {
+    console.log(`Fetching data for slug: ${slug}`);
     const query = `*[_type == "product" && slug.current == "${slug}"][0]{
       _id,
       name,
@@ -41,6 +42,7 @@ async function getData(slug: string) {
     }`;
 
     const product = await client.fetch(query);
+    console.log("Fetched product:", product);
     if (!product) return null;
 
     const relatedQuery = `*[_type == "product" && category->slug.current == "${product.categorySlug}" && slug.current != "${slug}"]{
@@ -52,6 +54,7 @@ async function getData(slug: string) {
     }`;
 
     const relatedProducts = await client.fetch(relatedQuery);
+    console.log("Fetched related products:", relatedProducts);
     return { product, relatedProducts };
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -68,6 +71,7 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      console.log(`Fetching data for params.slug: ${params.slug}`);
       const data = await getData(params.slug);
       if (data) {
         setProduct(data.product);

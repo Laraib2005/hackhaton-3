@@ -85,7 +85,7 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
   }, [params.slug]);
 
   if (!product) {
-    return <div className="text-center text-lg mt-10">Product not found</div>;
+    return <div className="text-center text-lg mt-10">error</div>;
   }
 
   // ✅ Add to Cart Function

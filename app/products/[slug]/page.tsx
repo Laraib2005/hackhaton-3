@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -9,7 +8,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import Link from 'next/link';
 
 type Product = {
-  _id: string;
+  _id: number;
   name: string;
   slug: string;
   imageUrl: string;
@@ -24,7 +23,7 @@ type Product = {
 };
 
 async function getData(slug: string) {
-  const query = `*[_type == "product" && slug.current == $slug][0]{
+  const query = `*[_type == "product" && slug.current == "${slug}"][0]{
     _id,
     name,
     "slug": slug.current,
@@ -32,18 +31,18 @@ async function getData(slug: string) {
     "categoryName": category->name,
     description,
     price,
-    "dimensions": {
-      "width": dimensions.width,
-      "height": dimensions.height,
-      "depth": dimensions.depth
+    "dimensions": dimensions {
+      width,
+      height,
+      depth
     },
     "categorySlug": category->slug.current
   }`;
 
-  const product = await client.fetch(query, { slug });
+  const product = await client.fetch(query);
   if (!product) return null;
 
-  const relatedQuery = `*[_type == "product" && category->slug.current == $categorySlug && slug.current != $slug]{
+  const relatedQuery = `*[_type == "product" && category->slug.current == "${product.categorySlug}" && slug.current != "${slug}"]{
     _id,
     name,
     "slug": slug.current,
@@ -51,11 +50,7 @@ async function getData(slug: string) {
     price
   }`;
 
-  const relatedProducts = await client.fetch(relatedQuery, {
-    categorySlug: product.categorySlug,
-    slug,
-  });
-
+  const relatedProducts = await client.fetch(relatedQuery);
   return { product, relatedProducts };
 }
 
@@ -81,25 +76,26 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
     return <div className="text-center text-lg mt-10">Product not found</div>;
   }
 
+  // ✅ Add to Cart Function
   const handleAddToCart = () => {
-    dispatch(
-      addToCart({
-        id: product._id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        image: product.imageUrl,
-        description: product.description,
-      })
-    );
+    dispatch(addToCart({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.imageUrl,
+      description: product.description,
+    }));
     showPopup("Item added to cart!");
   };
 
+  // ✅ Add to Wishlist Function
   const handleAddToWishlist = () => {
     addToWishlist({ ...product, _id: product._id.toString() });
     showPopup("Item added to wishlist!");
   };
 
+  // ✅ Show Popup Message
   const showPopup = (message: string) => {
     setPopupMessage(message);
     setTimeout(() => setPopupMessage(null), 3000);
@@ -122,25 +118,43 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
           <p className="text-lg md:text-xl py-2">${product.price}</p>
           <p className="text-[#505977] text-sm md:text-base">{product.description}</p>
 
-          <div className="mt-4 p-4 border border-gray-300 rounded-md">
-            <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
-            <div className="grid grid-cols-2 gap-y-2 text-gray-700">
-              <span className="font-medium text-2xl">Width:</span>
-              <span className="text-right text-xl">{product.dimensions.width} </span>
-              <span className="font-medium text-2xl">Height:</span>
-              <span className="text-right text-xl">{product.dimensions.height} </span>
-              <span className="font-medium text-2xl">Depth:</span>
-              <span className="text-right text-xl">{product.dimensions.depth} </span>
-            </div>
-          </div>
+          {/* ✅ Dimensions Section */}
+          {/* ✅ Dimensions Section */}
+{/* ✅ Dimensions Section */}
+<div className="mt-4 p-4 border border-gray-300 rounded-md">
+  <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
+  <div className="grid grid-cols-2 gap-y-2 text-gray-700">
+    <span className="font-medium text-2xl">Width:</span>
+    <span className="text-right text-xl">{product.dimensions.width} </span>
+
+    <span className="font-medium text-2xl">Height:</span>
+    <span className="text-right text-xl">{product.dimensions.height} </span>
+
+    <span className="font-medium text-2xl">Depth:</span>
+    <span className="text-right text-xl">{product.dimensions.depth} </span>
+  </div>
+</div>
+
+
 
           <div className="mt-6 flex gap-4">
-            <button className="w-[150px] h-[50px] bg-[#2A254B] text-white rounded-md" onClick={handleAddToCart}>Add to cart</button>
-            <button className="w-[150px] h-[50px] bg-red-500 text-white rounded-md" onClick={handleAddToWishlist}>Wishlist ❤️</button>
+            <button
+              className="w-[150px] h-[50px] bg-[#2A254B] text-white rounded-md"
+              onClick={handleAddToCart}
+            >
+              Add to cart
+            </button>
+            <button
+              className="w-[150px] h-[50px] bg-red-500 text-white rounded-md"
+              onClick={handleAddToWishlist}
+            >
+              Wishlist ❤️
+            </button>
           </div>
         </div>
       </div>
 
+      {/* ✅ Popup Message */}
       {popupMessage && (
         <div className="fixed bottom-6 right-6 bg-[#2A254B] text-white px-6 py-3 rounded-lg shadow-lg transition-all transform duration-300 ease-in-out">
           <p className="font-medium">{popupMessage}</p>
@@ -153,7 +167,13 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {relatedProducts.map((item) => (
               <div key={item._id} className="border p-4 rounded-md shadow-md h-[350px] flex flex-col items-center justify-between">
-                <Image src={item.imageUrl} width={200} height={200} alt={item.name} className="w-full h-[200px] object-cover rounded-md" />
+                <Image
+                  src={item.imageUrl}
+                  width={200}
+                  height={200}
+                  alt={item.name}
+                  className="w-full h-[200px] object-cover rounded-md"
+                />
                 <h3 className="mt-2 text-lg font-medium">{item.name}</h3>
                 <p className="text-sm text-gray-600">${item.price}</p>
                 <Link href={`/product/${item.slug}`} className="text-blue-600 mt-2">View Product</Link>

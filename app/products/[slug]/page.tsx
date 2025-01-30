@@ -23,35 +23,40 @@ type Product = {
 };
 
 async function getData(slug: string) {
-  const query = `*[_type == "product" && slug.current == "${slug}"][0]{
-    _id,
-    name,
-    "slug": slug.current,
-    "imageUrl": image.asset->url,
-    "categoryName": category->name,
-    description,
-    price,
-    "dimensions": dimensions {
-      width,
-      height,
-      depth
-    },
-    "categorySlug": category->slug.current
-  }`;
+  try {
+    const query = `*[_type == "product" && slug.current == "${slug}"][0]{
+      _id,
+      name,
+      "slug": slug.current,
+      "imageUrl": image.asset->url,
+      "categoryName": category->name,
+      description,
+      price,
+      "dimensions": dimensions {
+        width,
+        height,
+        depth
+      },
+      "categorySlug": category->slug.current
+    }`;
 
-  const product = await client.fetch(query);
-  if (!product) return null;
+    const product = await client.fetch(query);
+    if (!product) return null;
 
-  const relatedQuery = `*[_type == "product" && category->slug.current == "${product.categorySlug}" && slug.current != "${slug}"]{
-    _id,
-    name,
-    "slug": slug.current,
-    "imageUrl": image.asset->url,
-    price
-  }`;
+    const relatedQuery = `*[_type == "product" && category->slug.current == "${product.categorySlug}" && slug.current != "${slug}"]{
+      _id,
+      name,
+      "slug": slug.current,
+      "imageUrl": image.asset->url,
+      price
+    }`;
 
-  const relatedProducts = await client.fetch(relatedQuery);
-  return { product, relatedProducts };
+    const relatedProducts = await client.fetch(relatedQuery);
+    return { product, relatedProducts };
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    return null;
+  }
 }
 
 const ProductListing = ({ params }: { params: { slug: string } }) => {
@@ -67,6 +72,9 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
       if (data) {
         setProduct(data.product);
         setRelatedProducts(data.relatedProducts);
+      } else {
+        setProduct(null);
+        setRelatedProducts([]);
       }
     };
     fetchData();
@@ -119,23 +127,19 @@ const ProductListing = ({ params }: { params: { slug: string } }) => {
           <p className="text-[#505977] text-sm md:text-base">{product.description}</p>
 
           {/* ✅ Dimensions Section */}
-          {/* ✅ Dimensions Section */}
-{/* ✅ Dimensions Section */}
-<div className="mt-4 p-4 border border-gray-300 rounded-md">
-  <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
-  <div className="grid grid-cols-2 gap-y-2 text-gray-700">
-    <span className="font-medium text-2xl">Width:</span>
-    <span className="text-right text-xl">{product.dimensions.width} </span>
+          <div className="mt-4 p-4 border border-gray-300 rounded-md">
+            <h3 className="text-lg font-semibold mb-3">Product Dimensions</h3>
+            <div className="grid grid-cols-2 gap-y-2 text-gray-700">
+              <span className="font-medium text-2xl">Width:</span>
+              <span className="text-right text-xl">{product.dimensions.width} </span>
 
-    <span className="font-medium text-2xl">Height:</span>
-    <span className="text-right text-xl">{product.dimensions.height} </span>
+              <span className="font-medium text-2xl">Height:</span>
+              <span className="text-right text-xl">{product.dimensions.height} </span>
 
-    <span className="font-medium text-2xl">Depth:</span>
-    <span className="text-right text-xl">{product.dimensions.depth} </span>
-  </div>
-</div>
-
-
+              <span className="font-medium text-2xl">Depth:</span>
+              <span className="text-right text-xl">{product.dimensions.depth} </span>
+            </div>
+          </div>
 
           <div className="mt-6 flex gap-4">
             <button
